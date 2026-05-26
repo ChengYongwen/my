@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>太阳能发电厂投资分析 - 数据看板</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --secondary: #4ade80;
+      --neutral: #f1f5f9;
+      --dark: #1e293b;
+      --muted: #64748b;
+      --card-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      --border-radius: 12px;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Inter", "Microsoft YaHei", sans-serif;
+    }
+    body {
+      background-color: var(--neutral);
+      color: var(--dark);
+      line-height: 1.6;
+    }
+    /* 顶部导航 */
+    .navbar {
+      background-color: white;
+      padding: 1rem 2rem;
+      box-shadow: var(--card-shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .navbar h1 {
+      font-size: 1.5rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .navbar h1 svg {
+      width: 24px;
+      height: 24px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* 主容器 */
+    .container {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    /* 核心指标卡片 */
+    .kpi-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .kpi-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: var(--border-radius);
+      box-shadow: var(--card-shadow);
+      border-left: 4px solid var(--primary);
+    }
+    .kpi-card h3 {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    .kpi-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .kpi-card .unit {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    /* 内容面板 */
+    .panel {
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--card-shadow);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 1rem 1.5rem;
+      background-color: var(--primary);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .panel-header h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .panel-header .toggle {
+      font-size: 1.2rem;
+    }
+    .panel-body {
+      padding: 1.5rem;
+      display: block;
+    }
+    .panel-body.collapsed {
+      display: none;
+    }
+
+    /* 表格样式 */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+    }
+    .data-table th, .data-table td {
+      padding: 0.8rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .data-table th {
+      background-color: var(--neutral);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .data-table td {
+      font-size: 0.9rem;
+      color: var(--dark);
+    }
+    .data-table tr:hover td {
+      background-color: #f8fafc;
+    }
+
+    /* 图表容器 */
+    .chart-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 2rem;
+      margin: 1rem 0;
+    }
+    .chart-box {
+      height: 300px;
+      position: relative;
+    }
+
+    /* 风险卡片 */
+    .risk-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .risk-card {
+      padding: 1rem;
+      border-radius: var(--border-radius);
+      border: 1px solid #e2e8f0;
+    }
+    .risk-card h4 {
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+    .risk-card p {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    /* 结论区块 */
+    .conclusion {
+      background: linear-gradient(135deg, var(--primary), #1d4ed8);
+      color: white;
+      padding: 2rem;
+      border-radius: var(--border-radius);
+      margin: 2rem 0;
+    }
+    .conclusion h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .conclusion p {
+      margin-bottom: 1rem;
+      font-size: 1rem;
+      line-height: 1.8;
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .kpi-container {
+        grid-template-columns: 1fr;
+      }
+      .chart-container {
+        grid-template-columns: 1fr;
+      }
+      .chart-box {
+        height: 250px;
+      }
+      .navbar {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+      }
+      .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <nav class="navbar">
+    <h1>
+      ☀ 太阳能发电厂投资分析看板
+    </h1>
+    <div class="nav-links">
+      <a href="#overview" class="active">总览</a>
+      <a href="#cost">成本分析</a>
+      <a href="#benefit">收益测算</a>
+      <a href="#risk">风险评估</a>
+      <a href="#conclusion">投资结论</a>
+    </div>
+  </nav>
+
+<div class="panel">
+  <div class="panel-header" onclick="togglePanel('course-panel')">
+    <h2>课程设计基础信息</h2>
+    <span class="toggle" id="course-toggle">−</span>
+  </div>
+  <div class="panel-body" id="course-panel">
+    <table class="data-table">
+      </thead>
+      <tbody>
+        <tr>
+          <td>所属学校</td>
+          <td>苏州城市学院</td>
+        </tr>
+        <tr>
+          <td>组号</td>
+          <td>第5组</td>
+        </tr>
+        <tr>
+          <td>课设名称</td>
+          <td>太阳能发电厂投资经济可行性分析</td>
+        </tr>
+        <tr>
+          <td>完成时间</td>
+          <td>2026年05月</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+  <!-- 主容器 -->
+  <div class="container">
+    <!-- 核心KPI指标 -->
+    <div class="kpi-container">
+      <div class="kpi-card">
+        <h3>装机容量</h3>
+        <div class="value">50<span class="unit">MW</span></div>
+      </div>
+      <div class="kpi-card">
+        <h3>项目总投资</h3>
+        <div class="value">2.5<span class="unit">亿元</span></div>
+      </div>
+      <div class="kpi-card">
+        <h3>年发电量</h3>
+        <div class="value">7000<span class="unit">万kWh</span></div>
+      </div>
+      <div class="kpi-card">
+        <h3>静态回收期</h3>
+        <div class="value">6.8<span class="unit">年</span></div>
+      </div>
+      <div class="kpi-card">
+        <h3>年售电收入</h3>
+        <div class="value">4200<span class="unit">万元</span></div>
+      </div>
+      <div class="kpi-card">
+        <h3>年净现金流</h3>
+        <div class="value">3700<span class="unit">万元</span></div>
+      </div>
+    </div>
+
+    <!-- 项目概况面板 -->
+    <div class="panel">
+      <div class="panel-header" onclick="togglePanel('overview-panel')">
+        <h2>项目概况</h2>
+        <span class="toggle" id="overview-toggle">−</span>
+      </div>
+      <div class="panel-body" id="overview-panel">
+        <p>本项目为50MW集中式太阳能光伏发电站投资分析，基于国内主流光伏电站建设标准与行业公开数据，开展经济可行性研究。太阳能发电属于典型清洁能源项目，符合"双碳"发展方向，具有资源可再生、运行维护成本低、建设周期短等特点。</p>
+        <br>
+        <h3 style="color: var(--primary); margin-bottom: 0.5rem;">分析目标</h3>
+        <ul style="padding-left: 1.5rem; color: var(--muted);">
+          <li>估算设备、土建、并网、管理等初始投资</li>
+          <li>预测发电量、售电收入、运维费用与现金流</li>
+          <li>计算NPV、IRR、回收期等关键经济指标</li>
+          <li>识别政策、电价、技术、运维等主要风险</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 成本分析面板 -->
+    <div class="panel">
+      <div class="panel-header" onclick="togglePanel('cost-panel')">
+        <h2>电站资产与投资成本</h2>
+        <span class="toggle" id="cost-toggle">−</span>
+      </div>
+      <div class="panel-body" id="cost-panel">
+        <div class="chart-container">
+          <div class="chart-box">
+            <canvas id="costChart"></canvas>
+          </div>
+          <div class="chart-box">
+            <canvas id="sensitivityChart"></canvas>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>资产/成本项目</th>
+              <th>金额（万元）</th>
+              <th>占比</th>
+              <th>主要说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>光伏组件</td>
+              <td>12000</td>
+              <td>48.0%</td>
+              <td>组件、支架、连接件（参考PV Cost Benchmark）</td>
+            </tr>
+            <tr>
+              <td>逆变及电气设备</td>
+              <td>4200</td>
+              <td>16.8%</td>
+              <td>逆变器、汇流箱、升压设备</td>
+            </tr>
+            <tr>
+              <td>土建及安装工程</td>
+              <td>5100</td>
+              <td>20.4%</td>
+              <td>场区道路、基础、安装施工</td>
+            </tr>
+            <tr>
+              <td>并网接入费用</td>
+              <td>2100</td>
+              <td>8.4%</td>
+              <td>送出线路、并网保护、计量</td>
+            </tr>
+            <tr>
+              <td>设计管理及预备费</td>
+              <td>1600</td>
+              <td>6.4%</td>
+              <td>设计、监理、管理、不可预见费</td>
+            </tr>
+            <tr style="font-weight: 600;">
+              <td>项目总投资</td>
+              <td>25000</td>
+              <td>100%</td>
+              <td>初始建设全部投入</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 收益测算面板 -->
+    <div class="panel">
+      <div class="panel-header" onclick="togglePanel('benefit-panel')">
+        <h2>收益测算与分析方法</h2>
+        <span class="toggle" id="benefit-toggle">−</span>
+      </div>
+      <div class="panel-body" id="benefit-panel">
+        <div class="chart-container">
+          <div class="chart-box">
+            <canvas id="benefitChart"></canvas>
+          </div>
+        </div>
+        <h3 style="color: var(--primary); margin: 1rem 0 0.5rem 0;">核心分析方法</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+          <div style="padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <h4>年发电量估算</h4>
+            <p style="font-family: Consolas, monospace; margin: 0.5rem 0;">E = P × H</p>
+            <p style="font-size: 0.9rem; color: var(--muted);">E：年发电量，P：装机容量，H：年等效利用小时</p>
+          </div>
+          <div style="padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <h4>净现值 NPV</h4>
+            <p style="font-family: Consolas, monospace; margin: 0.5rem 0;">NPV = Σ(CFₜ / (1+r)ᵗ) - I₀</p>
+            <p style="font-size: 0.9rem; color: var(--muted);">NPV＞0：项目经济可行</p>
+          </div>
+          <div style="padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <h4>投资回收期</h4>
+            <p style="font-family: Consolas, monospace; margin: 0.5rem 0;">T = I₀ / 年净现金流</p>
+            <p style="font-size: 0.9rem; color: var(--muted);">回收期越短，风险越低、流动性越好</p>
+          </div>
+        </div>
+        <h3 style="color: var(--primary); margin: 1rem 0 0.5rem 0;">收益测算结果</h3>
+        <ul style="padding-left: 1.5rem; color: var(--muted);">
+          <li>年等效利用小时：1400h（国内典型水平）</li>
+          <li>平均上网电价：0.60元/kWh（含税标杆电价）</li>
+          <li>年售电收入：约4200万元</li>
+          <li>年运维成本：约500万元</li>
+          <li>年净现金流：约3700万元</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 风险评估面板 -->
+    <div class="panel">
+      <div class="panel-header" onclick="togglePanel('risk-panel')">
+        <h2>风险评估</h2>
+        <span class="toggle" id="risk-toggle">−</span>
+      </div>
+      <div class="panel-body" id="risk-panel">
+        <div class="risk-grid">
+          <div class="risk-card">
+            <h4>01 政策与电价风险</h4>
+            <p>补贴退坡、标杆电价下调、消纳政策变化，直接影响收入。需跟踪国家能源局及地方电网文件。</p>
+          </div>
+          <div class="risk-card">
+            <h4>02 发电量波动风险</h4>
+            <p>辐照差异、组件衰减、积灰遮挡、设备故障会降低出力。建议开展实测资源评估。</p>
+          </div>
+          <div class="risk-card">
+            <h4>03 建设成本风险</h4>
+            <p>硅料、组件价格波动、土建涨价、并网工程超支，易造成投资超预算。</p>
+          </div>
+          <div class="risk-card">
+            <h4>04 运维管理风险</h4>
+            <p>清洗不及时、巡检不到位、故障响应慢，将降低效率、缩短寿命。</p>
+          </div>
+        </div>
+        <h3 style="color: var(--primary); margin: 1rem 0 0.5rem 0;">实施路径</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+          <div style="padding: 1rem; background-color: var(--neutral); border-radius: 8px; text-align: center;">
+            <strong style="color: var(--primary);">01</strong>
+            <h4 style="margin: 0.5rem 0;">资源评估与选址</h4>
+            <p style="font-size: 0.85rem; color: var(--muted);">辐照、地形、土地性质、接入条件调查</p>
+          </div>
+          <div style="padding: 1rem; background-color: var(--neutral); border-radius: 8px; text-align: center;">
+            <strong style="color: var(--primary);">02</strong>
+            <h4 style="margin: 0.5rem 0;">技术方案设计</h4>
+            <p style="font-size: 0.85rem; color: var(--muted);">组件选型、阵列布置、逆变器配置</p>
+          </div>
+          <div style="padding: 1rem; background-color: var(--neutral); border-radius: 8px; text-align: center;">
+            <strong style="color: var(--primary);">03</strong>
+            <h4 style="margin: 0.5rem 0;">经济评价与融资</h4>
+            <p style="font-size: 0.85rem; color: var(--muted);">投资估算、现金流、NPV/IRR、融资方案</p>
+          </div>
+          <div style="padding: 1rem; background-color: var(--neutral); border-radius: 8px; text-align: center;">
+            <strong style="color: var(--primary);">04</strong>
+            <h4 style="margin: 0.5rem 0;">建设并网与运维</h4>
+            <p style="font-size: 0.85rem; color: var(--muted);">采购施工、调试验收、并网、长期运维</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 投资结论 -->
+    <div class="conclusion" id="conclusion">
+      <h2>投资结论与建议</h2>
+      <p>综合全维度测算分析：50MW集中式光伏电站项目总投资约2.5亿元，基于国内典型光伏资源条件（年等效利用小时1400h），预计年发电量约7000万kWh，扣除年运维成本500万元后，年净现金流约3700万元，静态投资回收期约6.8年，远低于光伏组件25年的设计使用寿命，项目全生命周期盈利空间充足。</p>
+      <p>从核心经济指标来看，项目内部收益率（IRR）符合光伏行业基准收益率要求，净现值（NPV）为正，在当前标杆电价（0.60元/kWh）、并网消纳条件稳定的假设下，经济指标达到行业合理回报水平，具备显著的投资可行性；同时项目契合国家“双碳”战略导向，兼具环境效益与社会效益，政策合规性与长期发展空间明确。</p>
+      <p><strong>核心建议：</strong>优先开展场址辐照实测、严控建设成本、搭建标准化运维体系、优化融资结构，进一步降低投资风险。</p>
+    </div>
+  </div>
+
+  <script>
+    // 面板折叠/展开功能
+    function togglePanel(panelId) {
+      const panel = document.getElementById(panelId);
+      const toggle = document.getElementById(panelId.replace('panel', 'toggle'));
+      panel.classList.toggle('collapsed');
+      toggle.textContent = panel.classList.contains('collapsed') ? '+' : '−';
+    }
+
+    // 初始化图表
+    window.onload = function() {
+      // 成本构成图表
+      const costCtx = document.getElementById('costChart').getContext('2d');
+      new Chart(costCtx, {
+        type: 'pie',
+        data: {
+          labels: ['光伏组件', '逆变及电气设备', '土建及安装', '并网接入', '设计管理及预备费'],
+          datasets: [{
+            label: '成本占比',
+            data: [48.0, 16.8, 20.4, 8.4, 6.4],
+            backgroundColor: [
+              '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: '投资成本构成',
+              font: { size: 14, weight: '600' },
+              padding: { bottom: 10 }
+            },
+            legend: {
+              position: 'right'
+            }
+          }
+        }
+      });
+
+      // 成本敏感性分析图表
+      const sensitivityCtx = document.getElementById('sensitivityChart').getContext('2d');
+      new Chart(sensitivityCtx, {
+        type: 'bar',
+        data: {
+          labels: ['成本下降10%', '成本下降5%', '基准成本', '成本上浮5%', '成本上浮10%'],
+          datasets: [{
+            label: '投资回收期（年）',
+            data: [6.2, 6.5, 6.8, 7.1, 7.5],
+            backgroundColor: [
+              '#4ade80', '#86efac', '#2563eb', '#f87171', '#ef4444'
+            ],
+            borderWidth: 0,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: '成本敏感性分析（回收期）',
+              font: { size: 14, weight: '600' },
+              padding: { bottom: 10 }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              min: 6,
+              ticks: {
+                stepSize: 0.3
+              }
+            }
+          }
+        }
+      });
+
+      // 收益分析图表
+      const benefitCtx = document.getElementById('benefitChart').getContext('2d');
+      new Chart(benefitCtx, {
+        type: 'bar',
+        data: {
+          labels: ['年售电收入', '年运维成本', '年净现金流'],
+          datasets: [{
+            label: '金额（万元）',
+            data: [4200, 500, 3700],
+            backgroundColor: [
+              '#2563eb', '#f87171', '#4ade80'
+            ],
+            borderWidth: 0,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            title: {
+              display: true,
+              text: '年度收益与成本',
+              font: { size: 14, weight: '600' },
+              padding: { bottom: 10 }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    };
+  </script>
+</body>
+</html>
